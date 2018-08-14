@@ -1,20 +1,20 @@
 package com.cj.couponlist;
 
 import android.app.Activity;
+import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 /**
  * 优惠券的Adapter基类
  */
-public abstract class BaseCouponAdapter extends BaseListViewAdapter<BaseCoupon> {
+public abstract class BaseCouponAdapter extends BaseRecyclerAdapter<BaseCoupon> {
 
     public static final int COUPON_PAGE_PRODUCT = 1; // 商详页
     public static final int COUPON_PAGE_CHOOSE = 2;  // 结算页
@@ -30,60 +30,24 @@ public abstract class BaseCouponAdapter extends BaseListViewAdapter<BaseCoupon> 
 
     public static final int STATUS_BG = -1; // app重绘背景用，非服务端返回
 
-    // 领取优惠券结果，领取成功
-    private static final int GET_ITEM_COUPON_RESULT_SUCCESS = 1;
-    // 领取优惠券结果，已领取
-    private static final int GET_ITEM_COUPON_RESULT_ALREADY_GET = 2;
-
     private Activity context;
     private int page;
     protected String para, skuId, type;
-    protected ListView listView;
 
     BaseCouponAdapter(Activity context, int page) {
-        super(context);
         this.context = context;
         this.page = page;
     }
 
-    // holder就写一个控件全集类
-    class ViewHolder {
-        CouponDisplayView couponDisplayView;
-        RelativeLayout ll_couponView;
-        LinearLayout ll_top_part;
-        TextView ticket_mark; // 人民币符号
-        TextView ticket_value;//减多少
-        TextView ticket_type;//优惠券类型
-        ImageView ticket_pic;//有效性
-        TextView ticket_time;//有效期
-        TextView ticket_action;
-        RelativeLayout rlt_discount_ticket_bottom_part;//item的下半部分
-        TextView ticket_description;//优惠券使用说明
-        ImageView ticket_point_iv;//箭头图片
-        CheckBox ticket_select; // 优惠券选择
-    }
-
     private void initCommonView(ViewHolder holder, View convertView) {
-        holder.ticket_mark = (TextView) convertView.findViewById(R.id.ticket_mark);
-        holder.ticket_value = (TextView) convertView.findViewById(R.id.ticket_value);
-        holder.ticket_type = (TextView) convertView.findViewById(R.id.ticket_type);
-        holder.ticket_pic = (ImageView) convertView.findViewById(R.id.ticket_pic);
-        holder.ticket_time = (TextView) convertView.findViewById(R.id.ticket_time);
-        holder.ticket_description = (TextView) convertView.findViewById(R.id.ticket_description);
-        holder.ticket_action = (TextView) convertView.findViewById(R.id.ticket_action);
+        holder.ticket_mark = convertView.findViewById(R.id.ticket_mark);
+        holder.ticket_value = convertView.findViewById(R.id.ticket_value);
+        holder.ticket_type = convertView.findViewById(R.id.ticket_type);
+        holder.ticket_pic = convertView.findViewById(R.id.ticket_pic);
+        holder.ticket_time = convertView.findViewById(R.id.ticket_time);
+        holder.ticket_description = convertView.findViewById(R.id.ticket_description);
+        holder.ticket_action = convertView.findViewById(R.id.ticket_action);
     }
-
-    public abstract void initExtraView(ViewHolder holder, View convertView);
-
-    public abstract void setBg(ViewHolder holder, int type);
-
-    public abstract void setPic(ViewHolder holder, int type);
-
-    public abstract void setData(BaseCoupon coupon, ViewHolder holder);
-
-    public abstract void setSelect(int position, BaseCoupon coupon, ViewHolder holder);
-
-    public abstract void setLimit(BaseCoupon coupon, ViewHolder holder);
 
     public void bindCommonData(BaseCoupon coupon, ViewHolder holder) {
         // 通用字段, 设置控件value
@@ -107,57 +71,71 @@ public abstract class BaseCouponAdapter extends BaseListViewAdapter<BaseCoupon> 
     }
 
     @Override
-    public View getView(int position, View convertView, ViewGroup parent) {
-
-        listView = (ListView) parent;
-        ViewHolder holder;
-        if (convertView == null) {
-            convertView = LayoutInflater.from(context).inflate(R.layout.item_coupon, parent, false);
-            holder = new ViewHolder();
-            // 初始化通用控件
-            initCommonView(holder, convertView);
-            // 初始化特别控件,在flavor apapter里
-            initExtraView(holder, convertView);
-            convertView.setTag(holder);
-        } else {
-            holder = (ViewHolder) convertView.getTag();
-        }
-        // 绑定数据及事件
-        bindData(position, holder);
-        return convertView;
+    public RecyclerView.ViewHolder onCreate(ViewGroup parent, int viewType) {
+        View root = LayoutInflater.from(context).inflate(R.layout.item_coupon, parent, false);
+        ViewHolder holder = new ViewHolder(root);
+        // 初始化通用控件
+        initCommonView(holder, root);
+        // 初始化特别控件,在flavor apapter里
+        initExtraView(holder, root);
+        return holder;
     }
 
-    private void bindData(int position, ViewHolder holder) {
+    public class ViewHolder extends RecyclerView.ViewHolder {
+        ViewHolder(View itemView) {
+            super(itemView);
+        }
+
+        CouponDisplayView couponDisplayView;
+        RelativeLayout ll_couponView;
+        LinearLayout ll_top_part;
+        TextView ticket_mark; // 人民币符号
+        TextView ticket_value;//减多少
+        TextView ticket_type;//优惠券类型
+        ImageView ticket_pic;//有效性
+        TextView ticket_time;//有效期
+        TextView ticket_action;
+        RelativeLayout rlt_discount_ticket_bottom_part;//item的下半部分
+        TextView ticket_description;//优惠券使用说明
+        ImageView ticket_point_iv;//箭头图片
+        CheckBox ticket_select; // 优惠券选择
+    }
+
+    @Override
+    public void onBind(RecyclerView.ViewHolder viewHolder, int realPosition, BaseCoupon data) {
+        // 绑定数据及事件
+        bindData(realPosition, viewHolder, data);
+    }
+
+    private void bindData(int position, RecyclerView.ViewHolder holder, BaseCoupon data) {
 
         switch (page) {
             case COUPON_PAGE_LIST:
                 type = para;
-//                dealForCouponList(position, holder);
+                dealForCouponList(position, (ViewHolder) holder, data);
                 break;
             case COUPON_PAGE_PRODUCT:
                 skuId = para;
-//                dealForProduct(position, holder);
+                dealForProduct(position, (ViewHolder) holder, data);
                 break;
             case COUPON_PAGE_CHOOSE:
-//                dealForCouponChoose(position, holder);
+                dealForCouponChoose(position, (ViewHolder) holder, data);
                 break;
         }
     }
 
-   /* private void dealForCouponChoose(int position, ViewHolder holder) {
-        final OrderCouponItem coupon = (OrderCouponItem) getItem(position);
+    private void dealForCouponChoose(int position, ViewHolder holder, BaseCoupon data) {
         // 通用控件绑定
-        bindCommonData(coupon, holder);
+        bindCommonData(data, holder);
         // flavor个性化数据绑定
-        setData(coupon, holder);
+        setData(data, holder);
         // flavor个性化绑定, 状态的绑定挪到个性化里
-        setSelect(position, coupon, holder);
+        setSelect(position, data, holder);
     }
 
-    private void dealForCouponList(int position, ViewHolder holder) {
-        final MyCouponListResult.MyCoupon coupon = (MyCouponListResult.MyCoupon) getItem(position);
+    private void dealForCouponList(int position, ViewHolder holder, BaseCoupon data) {
         // 通用控件绑定
-        bindCommonData(coupon, holder);
+        bindCommonData(data, holder);
 
         //控制图片显示
         switch (Integer.parseInt(type)) {
@@ -182,21 +160,20 @@ public abstract class BaseCouponAdapter extends BaseListViewAdapter<BaseCoupon> 
         }
 
         // flavor个性化绑定
-        setData(coupon, holder);
-    }*/
+        setData(data, holder);
+    }
 
-   /* private void dealForProduct(int position, ViewHolder holder) {
-        final ProductItemDetailUpResult.CouponListBean coupon = (ProductItemDetailUpResult.CouponListBean) getItem(position);
+    private void dealForProduct(int position, ViewHolder holder, BaseCoupon data) {
         // 通用控件绑定
-        bindCommonData(coupon, holder);
+        bindCommonData(data, holder);
 
-        switch (coupon.getStatus()) {
+        switch (data.getStatus()) {
             case ITEM_COUPON_STATUS_OK:
                 holder.ticket_pic.setVisibility(View.GONE);
                 // 动态设置背景
                 setBg(holder, STATUS_CAN_USE);
                 holder.ticket_action.setVisibility(View.VISIBLE);
-                holder.ticket_action.setText(R.string.product_detail_action_get_item_coupon);
+                holder.ticket_action.setText("点击领取");
                 holder.ticket_action.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -206,7 +183,7 @@ public abstract class BaseCouponAdapter extends BaseListViewAdapter<BaseCoupon> 
                 break;
             case ITEM_COUPON_STATUS_ALREADY_GET:
                 // 个性化处理
-                setLimit(coupon, holder);
+                setLimit(data, holder);
                 holder.ticket_action.setOnClickListener(new View.OnClickListener() {
 
                     @Override
@@ -218,7 +195,19 @@ public abstract class BaseCouponAdapter extends BaseListViewAdapter<BaseCoupon> 
             default:
                 break;
         }
-        setData(coupon, holder);
-    }*/
+        setData(data, holder);
+    }
+
+    public abstract void initExtraView(ViewHolder holder, View convertView);
+
+    public abstract void setBg(ViewHolder holder, int type);
+
+    public abstract void setPic(ViewHolder holder, int type);
+
+    public abstract void setData(BaseCoupon coupon, ViewHolder holder);
+
+    public abstract void setSelect(int position, BaseCoupon coupon, ViewHolder holder);
+
+    public abstract void setLimit(BaseCoupon coupon, ViewHolder holder);
 
 }

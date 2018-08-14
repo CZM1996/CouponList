@@ -4,6 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
+    android:paddingTop="10dp"
     tools:ignore="contentDescription">
 
     <!-- 上半部分，包括招牌图、编号、总额、状态、箭头 -->
